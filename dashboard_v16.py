@@ -232,6 +232,16 @@ Recommended Order:
 4. Extended
 """)
 
+col1, col2 = st.columns([1,5])
+
+with col1:
+    if st.button("🔄 Scan Again"):
+
+        scan_market.clear()
+
+        st.cache_data.clear()
+
+        st.rerun()
 
 data = scan_market()
 
