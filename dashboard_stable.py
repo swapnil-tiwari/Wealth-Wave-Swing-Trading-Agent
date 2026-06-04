@@ -1,70 +1,11 @@
 
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime
 
 st.set_page_config(page_title="52W Breakout Scanner", layout="wide")
-
-# Auto refresh every 10 minutes
-st_autorefresh(
-    interval=600000,
-    key="wealthwave_refresh"
-)
-
-
-st.markdown("""
-<style>
-.block-container {padding-top: 1rem;}
-.metric-card{
-    padding:16px;
-    border-radius:14px;
-    text-align:center;
-    background: var(--secondary-background-color);
-    border:1px solid rgba(128,128,128,.20);
-}
-.metric-value{
-    font-size:28px;
-    font-weight:700;
-}
-.metric-label{
-    opacity:.8;
-}
-.header-card{
-    padding:18px;
-    border-radius:16px;
-    text-align:center;
-    background: var(--secondary-background-color);
-    border:1px solid rgba(128,128,128,.20);
-}
-</style>
-""", unsafe_allow_html=True)
-
-def metric_card(title, value):
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="metric-value">{value}</div>
-        <div class="metric-label">{title}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-
-st.markdown("""
-<style>
-.ww-status-bar{
-padding:10px;
-border-radius:12px;
-margin-bottom:12px;
-text-align:center;
-font-weight:600;
-background:var(--secondary-background-color);
-border:1px solid rgba(128,128,128,.2);
-}
-</style>
-""", unsafe_allow_html=True)
 
 FNO_FILE = "fno_symbols.csv"
 
@@ -165,7 +106,7 @@ def prepare(df):
 
     return df
 
-@st.cache_data(ttl=540)
+@st.cache_data(ttl=900)
 def scan_market():
 
     rows = []
@@ -236,32 +177,25 @@ def scan_market():
 
 
 # ===== Wealth Wave UI =====
-try:
-    c_logo, c_title = st.columns([1,6])
-    with c_logo:
-        st.image("wealthwave_logo.jpg", width=110)
-    with c_title:
-        st.markdown("""
-        <div class="header-card">
-        <h1>🌊 Wealth Wave Breakout Scanner</h1>
-        <p>Recovery → Consolidation → First Breakout After EMA220 Recovery</p>
-        </div>
-        """, unsafe_allow_html=True)
-except:
+top1, top2 = st.columns([1,4])
+
+with top1:
+    try:
+        st.image("wealthwave_logo.jpg", width=140)
+    except:
+        pass
+
+with top2:
     st.markdown("""
-    <div class="header-card">
+    <div style="padding:18px;border-radius:12px;
+    background:linear-gradient(90deg,#0f172a,#1e293b);
+    border:1px solid #334155;">
     <h1>🌊 Wealth Wave Breakout Scanner</h1>
+    <p>Recovery → Consolidation → First Breakout After EMA220 Recovery</p>
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown(f"""
-<div class="ww-status-bar">
-🌊 Wealth Wave Scanner Active | Auto Refresh: 10 Minutes
-</div>
-""", unsafe_allow_html=True)
-
 st.caption(f"Last Refresh: {datetime.now().strftime('%d-%b-%Y %H:%M:%S')}")
-
 
 with st.expander("📖 Strategy Entry Conditions"):
     st.markdown("""
@@ -286,7 +220,6 @@ with st.expander("📖 Strategy Entry Conditions"):
 """)
 
 st.sidebar.title("🌊 Wealth Wave")
-st.sidebar.divider()
 st.sidebar.success("""
 Recommended Order:
 
@@ -350,54 +283,41 @@ extended_df = data[
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
-with c1:
-    metric_card("Scanned", len(data))
-with c2:
-    metric_card("🟢 Qualified", len(qualified_df))
-with c3:
-    metric_card("Fresh", len(fresh_df))
-with c4:
-    metric_card("Qualified+Fresh", len(qualified_fresh_df))
-with c5:
-    metric_card("👀 Near Breakouts", len(near_df))
-
+c1.metric("Scanned", len(data))
+c2.metric("Qualified", len(qualified_df))
+c3.metric("Fresh", len(fresh_df))
+c4.metric("Qualified+Fresh", len(qualified_fresh_df))
+c5.metric("Near", len(near_df))
 
 tabs = st.tabs([
-    "🟢 Qualified",
-    "🔥 Fresh Breakouts",
-    "⭐ Qualified + Fresh",
-    "👀 Near Breakouts",
-    "📈 Early Breakouts",
-    "🚀 Extended",
-    "📊 Chart"
+    "Qualified",
+    "Fresh Breakouts",
+    "Qualified + Fresh",
+    "Near Breakouts",
+    "Early Breakouts",
+    "Extended",
+    "Chart"
 ])
 
 with tabs[0]:
-    st.info("Strong trend stocks that meet all Wealth Wave quality filters. These are fundamentally strong candidates preparing for a potential breakout.")
     st.dataframe(qualified_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[1]:
-    st.info("Stocks giving their first 52-week breakout after recovering above EMA220. Represents the earliest stage of a potential new leadership trend.")
     st.dataframe(fresh_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[2]:
-    st.success("Strong trend stocks delivering their first breakout after recovery. These represent the highest-probability Wealth Wave entry opportunities.")
     st.dataframe(qualified_fresh_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[3]:
-    st.info("Qualified stocks trading within 3% of their 52-week high. Keep these on radar as they may trigger a breakout soon.")
     st.dataframe(near_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[4]:
-    st.info("Stocks that have recently broken out and are within 3% of their breakout level. Suitable for traders who missed the initial breakout.")
     st.dataframe(early_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[5]:
-    st.warning("Stocks that have already moved more than 3% above their breakout level. Indicates strength, but chasing entries may carry higher risk.")
     st.dataframe(extended_df.sort_values("Breakout %", ascending=False), use_container_width=True)
 
 with tabs[6]:
-    st.info("Visualize price action, moving averages, EMA220 recovery and breakout levels. Use this section to validate trade setups.")
     symbol = st.selectbox("Select Symbol", sorted(data["Symbol"].unique()))
 
     yahoo_symbol = REMAP.get(symbol, symbol) + ".NS"
@@ -422,7 +342,7 @@ with tabs[6]:
 
     fig.update_layout(
         height=750,
-        template="plotly",
+        template="plotly_dark",
         hovermode="x unified",
         title=f"{symbol} - Wealth Wave Analysis"
     )
